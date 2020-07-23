@@ -48,7 +48,7 @@ public class IngredientServiceImpl implements IngredientService {
 
     @Override
     public Mono<IngredientCommand> saveIngredientCommand(IngredientCommand command) {
-        Optional<Recipe> recipeOptional = recipeReactiveRepository.findById(command.getRecipeId()).blockOptional();
+          Optional<Recipe> recipeOptional = recipeReactiveRepository.findById(command.getRecipeId()).blockOptional();
 
         if (!recipeOptional.isPresent()) {
 
@@ -64,18 +64,20 @@ public class IngredientServiceImpl implements IngredientService {
                     .filter(ingredient -> ingredient.getId().equals(command.getId()))
                     .findFirst();
 
+            Ingredient ingredient = null;
             if (ingredientOptional.isPresent()) {
-                Ingredient ingredientFound = ingredientOptional.get();
-                ingredientFound.setDescription(command.getDescription());
-                ingredientFound.setAmount(command.getAmount());
-                ingredientFound.setUom(unitOfMeasureReactiveRepository
-                        .findById(command.getUom().getId())
-                        .blockOptional()
-                        .orElseThrow(() -> new RuntimeException("UOM NOT FOUND"))); //todo address this
+                ingredient = ingredientOptional.get();
+                ingredient.setDescription(command.getDescription());
+                ingredient.setAmount(command.getAmount());
             } else {
-                Ingredient ingredient = ingredientCommandToIngredient.convert(command);
+                ingredient = ingredientCommandToIngredient.convert(command);
                 recipe.addIngredient(ingredient);
             }
+
+            ingredient.setUom(unitOfMeasureReactiveRepository
+                    .findById(command.getUom().getId())
+                    .blockOptional()
+                    .orElseThrow(() -> new RuntimeException("UOM NOT FOUND"))); //todo address this
 
             Recipe savedRecipe = recipeReactiveRepository.save(recipe).block();
 
@@ -97,7 +99,7 @@ public class IngredientServiceImpl implements IngredientService {
 
             //enhance with id value
             IngredientCommand ingredientCommandSaved = ingredientToIngredientCommand.convert(savedIngredientOptional.get());
-            //ingredientCommandSaved.setRecipeId(recipe.getId());
+            ingredientCommandSaved.setRecipeId(recipe.getId());
 
             return Mono.just(ingredientCommandSaved);
         }
